@@ -86,7 +86,7 @@ const checkAndSelectWinningTheme = async (roomCode) => {
             );
             if (socketId && io.sockets.sockets.get(socketId)) {
                 io.sockets.sockets.get(socketId).emit("assignedNumber", {
-                    number: player.number
+                    number: player.number, playerId: player.id
                 });
             }
         });
@@ -249,7 +249,8 @@ io.on("connection", (socket) => {
             playerName: p.name,
             number: p.number,
             position: p.position,
-            hint: p.hint
+            hint: p.hint,
+            correct: true
         }));
 
         io.to(roomCode).emit("gameFinished", results);

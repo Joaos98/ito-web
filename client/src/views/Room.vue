@@ -18,10 +18,13 @@
 
     <!-- Regular room UI -->
     <div v-else>
-      <h2>Room {{ room?.code }}</h2>
+      <div class="room-header">
+        <h1>Room: {{ room?.code }}</h1>
+        <p class="status">Status: {{ room?.status }}</p>
+      </div>
       
       <!-- Show invite link for host -->
-      <div v-if="playerStore.isHost && room?.status === 'lobby'" class="invite-section">
+      <div v-if="player?.isHost && room?.status === 'lobby'" class="invite-section">
         <h3>Share this link:</h3>
         <div class="invite-link">
           <input 
@@ -42,7 +45,7 @@
             {{ p.name }} {{ p.isHost ? '👑' : '' }}
           </li>
         </ul>
-        <button @click="startThemeVoting" v-if="playerStore.isHost">Start Theme Voting</button>
+        <button @click="startThemeVoting" v-if="player.isHost">Start Game</button>
         <p v-else>Waiting for host to start...</p>
       </div>
 
@@ -65,27 +68,42 @@
       </div>
 
       <div v-else-if="room?.status === 'playing'">
-        <h3>Theme: {{ themeStore.selectedTheme?.name }}</h3>
-        <p>{{ themeStore.selectedTheme?.description }}</p>
-
-        <div v-if="playerStore.myNumber" class="my-number">
-          <h2>Your Number: {{ playerStore.myNumber }}</h2>
+        <div class="game-board">
+          <div v-for="position in players.length" :key="position" class="player-card">
+            <p>{{getPlayerInPos(position)}}</p>
+          </div>
         </div>
+        <div>
+          <h3>Theme: {{ themeStore.selectedTheme?.name }}</h3>
+          <p>{{ themeStore.selectedTheme?.description }}</p>
 
-        <div class="game-input">
-          <input v-model="hint" placeholder="Your hint" />
-          <input type="number" v-model.number="position" placeholder="Your position guess" min="1" :max="players.length" />
-          <button @click="updatePlayer">Submit</button>
+          <h3>Players:</h3>
+          <ul class="player-list">
+            <li v-for="p in players" :key="p.id">
+              {{ p.name }}
+            </li>
+          </ul>
+
+          <div v-if="player.number" class="my-number">
+            <h2>Your Number: {{ player.number }}</h2>
+          </div>
+
+          <div class="game-input">
+            <input v-model="hint" placeholder="Your hint" />
+            <input type="number" v-model.number="position" placeholder="Your position guess" min="1" :max="players.length" />
+            <button @click="updatePlayer" :disabled="!isPosAvailable(position)">Submit</button>
+            <button @click="clearPosition" :disabled="player.position == null">Clear Position</button>
+          </div>
+
+          <button v-if="player.isHost" @click="finishGame" class="finish-button">Finish Game</button>
         </div>
-
-        <h3>Players:</h3>
-        <ul class="player-list">
-          <li v-for="p in players" :key="p.id">
-            {{ p.name }}: {{ p.hint || '(no hint yet)' }} - Position: {{ p.position || '?' }}
-          </li>
-        </ul>
-
-        <button v-if="playerStore.isHost" @click="finishGame" class="finish-button">Finish Game</button>
+      </div>
+      <div v-else-if="room?.status === 'finished'">
+        <h2>YOU {{result ? 'WON!!' : 'LOST!!'}}</h2>
+        <h3>Results</h3>
+        <div v-for="r in results" :style="{ backgroundColor: r.correct ? 'lightgreen' : 'lightcoral' }">
+          Position #{{ r.position }}: {{ r.hint }} - {{ r.number }}
+        </div>
       </div>
     </div>
   </div>
@@ -95,14 +113,12 @@
 import { socket } from "../socket";
 import { ref, onMounted, computed, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { usePlayerStore } from "../stores/player";
 import { useThemeStore } from "../stores/theme.js";
 import { useRoomStore } from "../stores/room.js";
 
 const route = useRoute();
 const router = useRouter();
 
-const playerStore = usePlayerStore();
 const themeStore = useThemeStore();
 const roomStore = useRoomStore();
 
@@ -117,14 +133,33 @@ const errorMessage = ref("");
 const copied = ref(false);
 const linkInput = ref(null);
 const roomInfo = ref(null);
+const result = ref(null);
+const results = ref([]);
 
-const player = computed(() => playerStore.currentPlayer);
+const player = computed(() => roomStore.getPlayer);
 const room = computed(() => roomStore.currentRoom);
 const players = computed(() => roomStore.currentRoom?.players || []);
 
 const inviteLink = computed(() => {
   return `${window.location.origin}/room/${roomCode}`;
 });
+
+const getPlayerInPos = (position) => {
+  const player = players.value.find(p => p.position === position);
+  if (player) {
+    return `${player.name} (${player.hint || 'no hint'})`;
+  }
+  return 'Empty';
+}
+
+const isPosAvailable = (position) => {
+  return getPlayerInPos(position) === 'Empty' && (position >= 1 && position <= players.value.length);
+}
+
+const clearPosition = () => {
+  position.value = null;
+  updatePlayer();
+}
 
 const selectLink = () => {
   linkInput.value?.select();
@@ -161,7 +196,7 @@ const joinRoomWithName = () => {
     if (res.error) {
       errorMessage.value = res.error;
     } else {
-      playerStore.setPlayer(res.player);
+      roomStore.setMyId(res.player.id);
       roomStore.setCurrentRoom(res.room);
     }
   });
@@ -183,11 +218,11 @@ onMounted(() => {
   socket.on("playerJoined", (list) => roomStore.setPlayers(list));
   socket.on("playerLeft", ({ playerName, players: list }) => {
     roomStore.setPlayers(list);
-    // Could show a notification that player left
+    //TODO: Could show a notification that player left
   });
   socket.on("newHost", ({ hostId }) => {
-    if (player.value && player.value.id === hostId) {
-      playerStore.updatePlayerData({ isHost: true });
+    if (player.value && roomStore.myId === hostId) {
+      player.value.isHost = true;
     }
   });
   socket.on("playerUpdated", ({ playerId, hint: h, position: p }) => {
@@ -208,12 +243,21 @@ onMounted(() => {
     themeStore.setSelectedTheme(theme);
     roomStore.setRoomStatus("playing");
   });
-  socket.on("assignedNumber", ({ number }) => {
-    playerStore.setMyNumber(number);
+  socket.on("assignedNumber", ({ number, playerId }) => {
+    roomStore.currentRoom.players.find(p => p.id === playerId).number = number;
   });
-  socket.on("gameFinished", (results) => {
-    console.log("Game finished!", results);
-    // Handle game end
+  socket.on("gameFinished", (players) => {
+    let win = true;
+    players.sort((a, b) => a.position > b.position);
+    for (let i = 1; i < players.length; i++) {
+      if (players[i].number < players[i-1].number) {
+        win = false;
+        players[i].correct = false;
+      }
+    }
+    result.value = win;
+    results.value = players;
+    room.value.status = 'finished';
   });
 });
 
@@ -275,6 +319,10 @@ const finishGame = () => socket.emit("finishGame", { roomCode });
   padding: 1rem;
   margin: 1rem 0;
   border-radius: 8px;
+
+  h3 {
+    color: black;
+  }
 }
 
 .invite-link {
@@ -293,6 +341,10 @@ const finishGame = () => socket.emit("finishGame", { roomCode });
 .player-list {
   list-style: none;
   padding: 0;
+
+  li {
+    color: black;
+  }
 }
 
 .player-list li {
@@ -325,6 +377,10 @@ const finishGame = () => socket.emit("finishGame", { roomCode });
   margin: 1rem 0;
   border-radius: 8px;
   text-align: center;
+
+  h2 {
+    color: black;
+  }
 }
 
 .game-input {

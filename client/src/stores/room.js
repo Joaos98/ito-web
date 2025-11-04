@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import {computed, ref} from 'vue';
 
 export const useRoomStore = defineStore('room', () => {
     const currentRoom = ref({
@@ -7,9 +7,14 @@ export const useRoomStore = defineStore('room', () => {
         players: [],
         code: null
     });
+    const myId = ref(null);
 
     const setCurrentRoom = (room) => {
         currentRoom.value = { ...currentRoom.value, ...room };
+    }
+
+    const setMyId = (id) => {
+        myId.value = id;
     }
 
     const setRoomStatus = (status) => {
@@ -24,6 +29,10 @@ export const useRoomStore = defineStore('room', () => {
         }
     }
 
+    const getPlayer = computed(() => {
+        return currentRoom.value.players.find(p => p.id === myId.value);
+    });
+
     const clearRoom = () => {
         currentRoom.value = {
             status: 'lobby',
@@ -37,6 +46,9 @@ export const useRoomStore = defineStore('room', () => {
         setCurrentRoom,
         clearRoom,
         setPlayers,
-        setRoomStatus
+        setRoomStatus,
+        getPlayer,
+        myId,
+        setMyId
     };
 });

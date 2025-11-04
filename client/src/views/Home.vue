@@ -28,11 +28,9 @@
 import { socket } from "../socket";
 import { ref } from "vue";
 import { useRouter } from 'vue-router';
-import { usePlayerStore } from '../stores/player';
 import { useRoomStore } from "../stores/room.js";
 
 const router = useRouter();
-const playerStore = usePlayerStore();
 const roomStore = useRoomStore();
 
 const playerName = ref("");
@@ -50,7 +48,8 @@ const createRoom = () => {
     if (res.error) {
       errorMessage.value = res.error;
     } else {
-      playerStore.setPlayer(res.player);
+      roomStore.setPlayers([res.player]);
+      roomStore.setMyId(res.player.id);
       roomStore.setCurrentRoom(res.room);
       router.push(`/room/${res.room.code}`);
     }
@@ -76,7 +75,7 @@ const joinRoom = () => {
     if (res.error) {
       errorMessage.value = res.error;
     } else {
-      playerStore.setPlayer(res.player);
+      roomStore.setMyId(res.player.id);
       roomStore.setCurrentRoom(res.room);
       router.push(`/room/${res.room.code}`);
     }
