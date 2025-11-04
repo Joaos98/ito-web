@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  status    String   @default("lobby")
+  theme     String?
+  hostId    String?
+  players   Player[]
+  createdAt DateTime @default(now())
+}
+
+model Player {
+  id       String   @id @default(cuid())
+  name     String
+  isHost   Boolean  @default(false)
+  number   Int?
+  hint     String?
+  position Int?
+  roomId   String
+  room     Room     @relation(fields: [roomId], references: [id])
+  joinedAt DateTime @default(now())
+}
