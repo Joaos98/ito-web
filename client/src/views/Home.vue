@@ -1,27 +1,38 @@
 <template>
-  <div class="home-container">
-    <h1>ITO Game</h1>
-
-    <div class="name-input-section">
-      <h3>Enter your username:</h3>
-      <input
-          v-model="playerName"
-          placeholder="Your username"
-          maxlength="20"
-      />
-    </div>
-
-    <div class="action-section">
-      <button @click="createRoom" :disabled="!playerName.trim()">Create Room</button>
-
+  <main class="h-full flex flex-col justify-center items-center relative">
+    <h1 class="text-5xl font-bold text-yellow-300 absolute top-12">ito online</h1>
+    <div class="flex flex-col justify-center items-center h-full">
+      <div class="create-room-section w-full">
+        <InputPrimary
+            v-model="playerName"
+            placeholder="Username"
+            maxlength="20"
+            :error="errorMessage"
+        />
+        <ButtonPrimary class="w-full mt-1"
+                       @click="createRoom" :disabled="!playerName.trim()"
+        >
+          Criar Sala
+        </ButtonPrimary>
+      </div>
+      <div class="flex items-center justify-center w-full p-1">
+        <div class="border-t border-white flex-grow"></div>
+        <span class="mx-4 text-white text-sm">ou</span>
+        <div class="border-t border-white flex-grow"></div>
+      </div>
       <div class="join-section">
-        <input v-model="roomCode" placeholder="Room code" maxlength="5" />
-        <button @click="joinRoom" :disabled="!playerName.trim() || !roomCode.trim()">Join Room</button>
+        <InputPrimary class="uppercase placeholder:normal-case"
+                      v-model="roomCode"
+                      placeholder="Código da Sala"
+        />
+        <ButtonPrimary
+            @click="joinRoom" :disabled="!playerName.trim() || !roomCode.trim()"
+        >
+          Entrar
+        </ButtonPrimary>
       </div>
     </div>
-
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-  </div>
+  </main>
 </template>
 
 <script setup>
@@ -29,6 +40,8 @@ import { socket } from "../socket";
 import { ref } from "vue";
 import { useRouter } from 'vue-router';
 import { useRoomStore } from "../stores/room.js";
+import ButtonPrimary from "../components/ButtonPrimary.vue";
+import InputPrimary from "../components/InputPrimary.vue";
 
 const router = useRouter();
 const roomStore = useRoomStore();
@@ -91,21 +104,7 @@ const joinRoom = () => {
   text-align: center;
 }
 
-.name-input-section {
-  margin: 2rem 0;
-}
-
-.name-input-section input {
-  width: 100%;
-  max-width: 300px;
-}
-
-.action-section {
-  margin: 2rem 0;
-}
-
 .join-section {
-  margin-top: 1rem;
   display: flex;
   gap: 0.5rem;
   justify-content: center;
@@ -116,13 +115,7 @@ const joinRoom = () => {
   text-transform: uppercase;
 }
 
-.error {
-  color: #f44336;
-  margin-top: 1rem;
-}
-
 button:disabled {
-  background: #ccc;
   cursor: not-allowed;
 }
 </style>

@@ -156,7 +156,7 @@ io.on("connection", (socket) => {
         // Check if name is already taken in this room
         const nameTaken = room.players.some(p => p.name.toLowerCase() === playerName.trim().toLowerCase());
         if (nameTaken) {
-            return callback({ error: "Name already taken in this room" });
+            return callback({ error: "Já existe um jogador com esse username!" });
         }
 
         const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(7)}`;
