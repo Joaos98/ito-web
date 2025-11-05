@@ -7,7 +7,6 @@
             v-model="playerName"
             placeholder="Username"
             maxlength="20"
-            :error="errorMessage"
         />
         <ButtonPrimary class="w-full mt-1"
                        @click="createRoom" :disabled="!playerName.trim()"
@@ -16,20 +15,23 @@
         </ButtonPrimary>
       </div>
       <div class="flex items-center justify-center w-full p-1">
-        <div class="border-t border-white flex-grow"></div>
-        <span class="mx-4 text-white text-sm">ou</span>
-        <div class="border-t border-white flex-grow"></div>
+        <div class="border-t border-light flex-grow"></div>
+        <span class="mx-4 text-light text-sm">ou</span>
+        <div class="border-t border-light flex-grow"></div>
       </div>
-      <div class="join-section">
-        <InputPrimary class="uppercase placeholder:normal-case"
-                      v-model="roomCode"
-                      placeholder="Código da Sala"
-        />
-        <ButtonPrimary
-            @click="joinRoom" :disabled="!playerName.trim() || !roomCode.trim()"
-        >
-          Entrar
-        </ButtonPrimary>
+      <div class="flex flex-col">
+        <div class="join-section">
+          <InputPrimary class="uppercase placeholder:normal-case"
+                        v-model="roomCode"
+                        placeholder="Código da Sala"
+          />
+          <ButtonPrimary
+              @click="joinRoom" :disabled="!playerName.trim() || !roomCode.trim()"
+          >
+            Entrar
+          </ButtonPrimary>
+        </div>
+        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
       </div>
     </div>
   </main>
@@ -97,12 +99,6 @@ const joinRoom = () => {
 </script>
 
 <style scoped>
-.home-container {
-  max-width: 500px;
-  margin: 2rem auto;
-  padding: 2rem;
-  text-align: center;
-}
 
 .join-section {
   display: flex;
@@ -113,9 +109,5 @@ const joinRoom = () => {
 .join-section input {
   max-width: 150px;
   text-transform: uppercase;
-}
-
-button:disabled {
-  cursor: not-allowed;
 }
 </style>

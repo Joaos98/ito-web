@@ -5,14 +5,14 @@
         :value="modelValue"
         @input="onInput"
         :class="[
-        'rounded-xl bg-dark text-white p-2 border-white',
+        'rounded-xl bg-stone-600 text-white p-2 border-light border-1',
         disabled ? 'opacity-50 cursor-not-allowed' : '',
       ]"
         :disabled="disabled"
     />
 
     <!-- Error message -->
-    <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="error">{{ error }}</p>
   </div>
 </template>
 

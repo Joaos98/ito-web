@@ -103,7 +103,7 @@ io.on("connection", (socket) => {
     // Create Room
     socket.on("createRoom", ({ playerName }, callback) => {
         if (!playerName || !playerName.trim()) {
-            return callback({ error: "Player name is required" });
+            return callback({ error: "Escolha um username!" });
         }
 
         const code = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -139,7 +139,7 @@ io.on("connection", (socket) => {
     // Get Room Info (for direct link access)
     socket.on("getRoomInfo", ({ roomCode }, callback) => {
         const room = rooms[roomCode];
-        if (!room) return callback({ error: "Room not found" });
+        if (!room) return callback({ error: "Sala não encontrada!" });
 
         callback({ room: { code: room.code, status: room.status, playerCount: room.players.length } });
     });
@@ -147,16 +147,16 @@ io.on("connection", (socket) => {
     // Join Room
     socket.on("joinRoom", async ({ roomCode, playerName }, callback) => {
         const room = rooms[roomCode];
-        if (!room) return callback({ error: "Room not found" });
+        if (!room) return callback({ error: "Sala não encontrada!" });
 
         if (!playerName || !playerName.trim()) {
-            return callback({ error: "Player name is required" });
+            return callback({ error: "Escolha um username!" });
         }
 
         // Check if name is already taken in this room
         const nameTaken = room.players.some(p => p.name.toLowerCase() === playerName.trim().toLowerCase());
         if (nameTaken) {
-            return callback({ error: "Já existe um jogador com esse username!" });
+            return callback({ error: "Esse username já foi escolhido!" });
         }
 
         const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(7)}`;

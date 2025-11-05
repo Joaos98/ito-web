@@ -1,108 +1,122 @@
 <template>
-  <div class="room-container">
-    <!-- Show name prompt if player hasn't joined yet -->
-    <div v-if="!player" class="join-prompt">
-      <h2>Join Room {{ roomCode }}</h2>
-      <p v-if="roomInfo">{{ roomInfo.playerCount }} player(s) in this room</p>
-      <div>
-        <input 
-          v-model="playerName" 
-          placeholder="Enter your name" 
-          @keyup.enter="joinRoomWithName"
-          maxlength="20"
-        />
-        <button @click="joinRoomWithName" :disabled="!playerName.trim()">Join Room</button>
-      </div>
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+  <div class="h-full w-full flex flex-col justify-center items-center relative">
+    <div class="room-header w-full mb-auto flex justify-between">
+      <h1 class="text-2xl font-bold text-yellow-300">ito online</h1>
+      <h1 v-if="room?.code" class="text-2xl font-bold text-yellow-300">Sala {{ room?.code }}</h1>
     </div>
-
-    <!-- Regular room UI -->
-    <div v-else>
-      <div class="room-header">
-        <h1>Room: {{ room?.code }}</h1>
-        <p class="status">Status: {{ room?.status }}</p>
-      </div>
-      
-      <!-- Show invite link for host -->
-      <div v-if="player?.isHost && room?.status === 'lobby'" class="invite-section">
-        <h3>Share this link:</h3>
-        <div class="invite-link">
-          <input 
-            type="text" 
-            :value="inviteLink" 
-            readonly 
-            @click="selectLink"
-            ref="linkInput"
-          />
-          <button @click="copyLink">{{ copied ? 'Copied!' : 'Copy' }}</button>
+    <div class="flex w-full flex-1 justify-center items-center">
+      <!-- Show name prompt if player hasn't joined yet -->
+      <div v-if="!player" class="flex flex-col p-3 bg-dark border-1 border-light rounded-lg shadow-lg min-h-50 justify-between">
+        <h2 class="text-xl font-bold text-yellow-300">Entrar na Sala {{ roomCode }}</h2>
+        <div class="flex flex-col">
+          <div class="flex">
+            <InputPrimary
+                v-model="playerName"
+                placeholder="Username"
+                @keyup.enter="joinRoomWithName"
+                maxlength="20"
+                class="mr-1"
+            />
+            <ButtonPrimary @click="joinRoomWithName" :disabled="!playerName.trim()">Entrar</ButtonPrimary>
+          </div>
+          <p v-if="errorMessage" class="error font-bold">{{ errorMessage }}</p>
         </div>
+        <p v-if="roomInfo">{{ roomInfo.playerCount }} jogador(es) na sala</p>
       </div>
+      <div v-else class="flex w-full">
+        <!-- Regular room UI -->
+        <div class="main-content flex w-full flex-1 justify-center items-center">
+          <div>
+            <!-- Show invite link for host -->
+            <div v-if="player?.isHost && room?.status === 'lobby'" class="flex flex-col gap-5 items-center justify-center p-3 bg-dark border-1 border-light rounded-lg shadow-lg">
+              <h2>Convide seus jogadores</h2>
+              <div class="flex">
+                <InputPrimary
+                    :style="{ width: (inviteLink.length-2 || 1) + 'ch' }"
+                    type="text"
+                    v-model="inviteLink"
+                    readonly
+                    @click="selectLink"
+                    ref="linkInput"
+                    class="mr-1"
+                />
+                <ButtonPrimary @click="copyLink" class="w-full">
+                  {{ copied ? 'Copiado!' : 'Copiar' }}
+                </ButtonPrimary>
+              </div>
+              <h2>E comece a partida!</h2>
+              <ButtonPrimary @click="startThemeVoting">Começar!</ButtonPrimary>
+            </div>
+            <div v-if="room?.status === 'lobby' && !player?.isHost">
+              <p>Esperando o host começar a partida...</p>
+            </div>
 
-      <div v-if="room?.status === 'lobby'">
-        <h3>Players:</h3>
-        <ul class="player-list">
-          <li v-for="p in players" :key="p.id">
-            {{ p.name }} {{ p.isHost ? '👑' : '' }}
-          </li>
-        </ul>
-        <button @click="startThemeVoting" v-if="player.isHost">Start Game</button>
-        <p v-else>Waiting for host to start...</p>
-      </div>
+            <div v-else-if="room?.status === 'voting'">
+              <h3>Vote for a Theme:</h3>
+              <div class="theme-buttons">
+                <button
+                    v-for="t in themeStore.themeOptions"
+                    :key="t.name"
+                    @click="voteTheme(t)"
+                    :class="{ selected: currentThemeVote?.name === t.name }"
+                    class="theme-button"
+                >
+                  <strong>{{ t.name }}</strong><br/>
+                  <small>{{ t.description }}</small>
+                </button>
+              </div>
+              <p>{{ totalVotes }}/{{ players.length }} voted</p>
+              <p v-if="currentThemeVote" class="vote-status">✓ You voted for: {{ currentThemeVote.name }}</p>
+            </div>
 
-      <div v-else-if="room?.status === 'voting'">
-        <h3>Vote for a Theme:</h3>
-        <div class="theme-buttons">
-          <button 
-            v-for="t in themeStore.themeOptions" 
-            :key="t.name" 
-            @click="voteTheme(t)"
-            :class="{ selected: currentThemeVote?.name === t.name }"
-            class="theme-button"
-          >
-            <strong>{{ t.name }}</strong><br/>
-            <small>{{ t.description }}</small>
-          </button>
-        </div>
-        <p>{{ totalVotes }}/{{ players.length }} voted</p>
-        <p v-if="currentThemeVote" class="vote-status">✓ You voted for: {{ currentThemeVote.name }}</p>
-      </div>
+            <div v-else-if="room?.status === 'playing'">
+              <div class="game-board">
+                <div v-for="position in players.length" :key="position" class="player-card">
+                  <p>{{getPlayerInPos(position)}}</p>
+                </div>
+              </div>
+              <div>
+                <h3>Theme: {{ themeStore.selectedTheme?.name }}</h3>
+                <p>{{ themeStore.selectedTheme?.description }}</p>
 
-      <div v-else-if="room?.status === 'playing'">
-        <div class="game-board">
-          <div v-for="position in players.length" :key="position" class="player-card">
-            <p>{{getPlayerInPos(position)}}</p>
+                <h3>Players:</h3>
+                <ul class="player-list">
+                  <li v-for="p in players" :key="p.id">
+                    {{ p.name }}
+                  </li>
+                </ul>
+
+                <div v-if="player.number" class="my-number">
+                  <h2>Your Number: {{ player.number }}</h2>
+                </div>
+
+                <div class="game-input">
+                  <input v-model="hint" placeholder="Your hint" />
+                  <input type="number" v-model.number="position" placeholder="Your position guess" min="1" :max="players.length" />
+                  <button @click="updatePlayer" :disabled="!isPosAvailable(position)">Submit</button>
+                  <button @click="clearPosition" :disabled="player.position == null">Clear Position</button>
+                </div>
+
+                <button v-if="player.isHost" @click="finishGame" class="finish-button">Finish Game</button>
+              </div>
+            </div>
+            <div v-else-if="room?.status === 'finished'">
+              <h2>YOU {{result ? 'WON!!' : 'LOST!!'}}</h2>
+              <h3>Results</h3>
+              <div v-for="r in results" :style="{ backgroundColor: r.correct ? 'lightgreen' : 'lightcoral' }">
+                Position #{{ r.position }}: {{ r.hint }} - {{ r.number }}
+              </div>
+            </div>
           </div>
         </div>
-        <div>
-          <h3>Theme: {{ themeStore.selectedTheme?.name }}</h3>
-          <p>{{ themeStore.selectedTheme?.description }}</p>
 
-          <h3>Players:</h3>
+        <div class="sidebar-right ml-auto bg-red-300">
+          <h3>Jogadores:</h3>
           <ul class="player-list">
             <li v-for="p in players" :key="p.id">
-              {{ p.name }}
+              {{ p.name }} {{ p.isHost ? '👑' : '' }}
             </li>
           </ul>
-
-          <div v-if="player.number" class="my-number">
-            <h2>Your Number: {{ player.number }}</h2>
-          </div>
-
-          <div class="game-input">
-            <input v-model="hint" placeholder="Your hint" />
-            <input type="number" v-model.number="position" placeholder="Your position guess" min="1" :max="players.length" />
-            <button @click="updatePlayer" :disabled="!isPosAvailable(position)">Submit</button>
-            <button @click="clearPosition" :disabled="player.position == null">Clear Position</button>
-          </div>
-
-          <button v-if="player.isHost" @click="finishGame" class="finish-button">Finish Game</button>
-        </div>
-      </div>
-      <div v-else-if="room?.status === 'finished'">
-        <h2>YOU {{result ? 'WON!!' : 'LOST!!'}}</h2>
-        <h3>Results</h3>
-        <div v-for="r in results" :style="{ backgroundColor: r.correct ? 'lightgreen' : 'lightcoral' }">
-          Position #{{ r.position }}: {{ r.hint }} - {{ r.number }}
         </div>
       </div>
     </div>
@@ -115,6 +129,8 @@ import { ref, onMounted, computed, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useThemeStore } from "../stores/theme.js";
 import { useRoomStore } from "../stores/room.js";
+import InputPrimary from "../components/InputPrimary.vue";
+import ButtonPrimary from "../components/ButtonPrimary.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -303,41 +319,6 @@ const finishGame = () => socket.emit("finishGame", { roomCode });
   padding: 2rem;
 }
 
-.join-prompt {
-  text-align: center;
-  padding: 2rem;
-}
-
-.join-prompt input {
-  margin: 1rem 0;
-  width: 100%;
-  max-width: 300px;
-}
-
-.invite-section {
-  background: #f0f0f0;
-  padding: 1rem;
-  margin: 1rem 0;
-  border-radius: 8px;
-
-  h3 {
-    color: black;
-  }
-}
-
-.invite-link {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.invite-link input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
 .player-list {
   list-style: none;
   padding: 0;
@@ -393,11 +374,6 @@ const finishGame = () => socket.emit("finishGame", { roomCode });
 .finish-button {
   background: #f44336;
   margin-top: 2rem;
-}
-
-.error {
-  color: #f44336;
-  margin-top: 1rem;
 }
 
 .vote-status {
