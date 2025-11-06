@@ -5,7 +5,7 @@
       <h1 v-if="room?.code" class="text-2xl font-bold text-yellow-300">Sala {{ room?.code }}</h1>
     </div>
     <div class="flex w-full flex-1 justify-center items-center">
-      <!-- Show name prompt if player hasn't joined yet -->
+      <!-- Caso o Jogador tenha entrado na sala via URL/sem username -->
       <div v-if="!player" class="flex flex-col p-3 bg-dark border-1 border-light rounded-lg shadow-lg min-h-50 justify-between">
         <h2 class="text-xl font-bold text-yellow-300">Entrar na Sala {{ roomCode }}</h2>
         <div class="flex flex-col">
@@ -23,11 +23,11 @@
         </div>
         <p v-if="roomInfo">{{ roomInfo.playerCount }} jogador(es) na sala</p>
       </div>
+      <!-- Caso o Jogador tenha entrado na sala via Home Page/com username -->
       <div v-else class="flex w-full">
-        <!-- Regular room UI -->
         <div class="main-content flex w-full flex-1 justify-center items-center">
           <div>
-            <!-- Show invite link for host -->
+            <!-- Lobby: Link de invite e Botão de Começar, caso o Jogador seja o Host  -->
             <div v-if="player?.isHost && room?.status === 'lobby'" class="flex flex-col gap-5 items-center justify-center p-3 bg-dark border-1 border-light rounded-lg shadow-lg">
               <h2>Convide seus jogadores</h2>
               <div class="flex">
@@ -47,26 +47,28 @@
               <h2>E comece a partida!</h2>
               <ButtonPrimary @click="startThemeVoting">Começar!</ButtonPrimary>
             </div>
+            <!-- Lobby: Mensagem caso o Jogador não seja o host -->
             <div v-if="room?.status === 'lobby' && !player?.isHost">
               <p>Esperando o host começar a partida...</p>
             </div>
-
+            <!-- Votação: Votação dos Temas -->
             <div v-else-if="room?.status === 'voting'">
-              <h3>Vote for a Theme:</h3>
-              <div class="theme-buttons">
+              <h3 class="font-bold text-yellow-300 mb-5">Vote em um Tema!</h3>
+              <div class="flex">
                 <button
                     v-for="t in themeStore.themeOptions"
                     :key="t.name"
                     @click="voteTheme(t)"
                     :class="{ selected: currentThemeVote?.name === t.name }"
-                    class="theme-button"
+                    class="p-2 m-1 rounded-lg max-w-75 shadow-lg bg-light text-black hover:bg-yellow-300 transition duration-200"
                 >
                   <strong>{{ t.name }}</strong><br/>
                   <small>{{ t.description }}</small>
                 </button>
               </div>
-              <p>{{ totalVotes }}/{{ players.length }} voted</p>
-              <p v-if="currentThemeVote" class="vote-status">✓ You voted for: {{ currentThemeVote.name }}</p>
+              <p v-if="currentThemeVote" class="text-[#4CAF50] font-bold">Você votou em {{ currentThemeVote.name }}!</p>
+              <p v-else class="text-[#B03D3D] font-bold"> Você ainda não votou!</p>
+              <p class="text-yellow-300 mt-5">Votos: {{ totalVotes }}/{{ players.length }}</p>
             </div>
 
             <div v-else-if="room?.status === 'playing'">
@@ -110,10 +112,11 @@
           </div>
         </div>
 
-        <div class="sidebar-right ml-auto bg-red-300">
-          <h3>Jogadores:</h3>
-          <ul class="player-list">
-            <li v-for="p in players" :key="p.id">
+        <!-- Sidebar Jogadores -->
+        <div class="sidebar-right h-[50vh] overflow-y-auto ml-auto bg-dark p-2 rounded-lg shadow-lg border-1">
+          <h3 class="font-bold text-yellow-300 mb-2">Jogadores</h3>
+          <ul class="player-list grid grid-cols-2 gap-2">
+            <li v-for="p in players" :key="p.id" class="bg-light max-w-30 min-h-15 max-h-20 font-bold shadow-lg text-black rounded-xl pt-1 pb-1 pl-2 pr-2 flex items-center justify-center">
               {{ p.name }} {{ p.isHost ? '👑' : '' }}
             </li>
           </ul>
@@ -303,8 +306,13 @@ const updatePlayer = () => {
 
 const voteTheme = (theme) => {
   if (player.value) {
-    socket.emit("voteTheme", { roomCode, playerId: player.value.id, theme: theme });
-    currentThemeVote.value = theme;
+    if (!currentThemeVote.value || currentThemeVote.value.name !== theme.name) {
+      socket.emit("voteTheme", { roomCode, playerId: player.value.id, theme: theme });
+      currentThemeVote.value = theme;
+    } else {
+      socket.emit("unvoteTheme", { roomCode, playerId: player.value.id, theme: theme });
+      currentThemeVote.value = null;
+    }
   }
 };
 
@@ -313,43 +321,14 @@ const finishGame = () => socket.emit("finishGame", { roomCode });
 </script>
 
 <style scoped>
-.room-container {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 2rem;
-}
 
 .player-list {
   list-style: none;
   padding: 0;
-
-  li {
-    color: black;
-  }
 }
 
-.player-list li {
-  padding: 0.5rem;
-  margin: 0.25rem 0;
-  background: #f5f5f5;
-  border-radius: 4px;
-}
-
-.theme-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
-
-.theme-button {
-  padding: 1rem;
-  text-align: left;
-}
-
-.theme-button.selected {
-  background: #4CAF50;
-  color: white;
+.selected {
+  background-color: #4CAF50;
 }
 
 .my-number {
@@ -374,10 +353,5 @@ const finishGame = () => socket.emit("finishGame", { roomCode });
 .finish-button {
   background: #f44336;
   margin-top: 2rem;
-}
-
-.vote-status {
-  color: #4CAF50;
-  font-weight: bold;
 }
 </style>

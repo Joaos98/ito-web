@@ -239,6 +239,19 @@ io.on("connection", (socket) => {
         await checkAndSelectWinningTheme(roomCode);
     });
 
+    // Unvote theme
+    socket.on("unvoteTheme", async ({ roomCode, playerId, theme }) => {
+        if (!themeVotes[roomCode]) themeVotes[roomCode] = {};
+        if (!playerVotes[roomCode]) playerVotes[roomCode] = {};
+
+        const themeName = theme.name || theme;
+        themeVotes[roomCode][themeName] = themeVotes[roomCode][themeName].filter(id => id !== playerId);
+        delete playerVotes[roomCode][playerId];
+
+        // Notify all players
+        io.to(roomCode).emit("themeVoted", Object.keys(playerVotes[roomCode]).length);
+    });
+
     // Finish game
     socket.on("finishGame", ({ roomCode }) => {
         const room = rooms[roomCode];
