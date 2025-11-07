@@ -29,6 +29,14 @@ export const useRoomStore = defineStore('room', () => {
         }
     }
 
+    const setPlayerNumbers = (players) => {
+        if (currentRoom.value && currentRoom.value.players) {
+            for (const player of currentRoom.value.players) {
+                player.number = players.find(p => p.playerId === player.id)?.number;
+            }
+    }
+    }
+
     const getPlayer = computed(() => {
         return currentRoom.value.players.find(p => p.id === myId.value);
     });
@@ -49,6 +57,7 @@ export const useRoomStore = defineStore('room', () => {
         setRoomStatus,
         getPlayer,
         myId,
-        setMyId
+        setMyId,
+        setPlayerNumbers
     };
 });

@@ -57,7 +57,7 @@
                 <p>Esperando o host começar a partida...</p>
               </div>
               <!-- Votação: Votação dos Temas -->
-              <div v-else-if="room?.status === 'voting'">
+              <div v-else-if="room?.status === 'voting'" class="p-3">
                 <h3 class="font-bold text-yellow-300 mb-5">Vote em um Tema!</h3>
                 <div class="flex">
                   <button
@@ -67,21 +67,21 @@
                       :class="{ selected: currentThemeVote?.name === t.name }"
                       class="p-2 m-1 rounded-lg max-w-75 shadow-lg bg-light text-black hover:bg-yellow-300 transition duration-200"
                   >
-                    <strong>{{ t.name }}</strong><br/>
+                    <span class="font-bold text-sm">{{ t.name }}</span><br/>
                     <small>{{ t.description }}</small>
                   </button>
                 </div>
-                <p v-if="currentThemeVote" class="text-[#4CAF50] font-bold">Você votou em {{ currentThemeVote.name }}!</p>
+                <p v-if="currentThemeVote" class="text-[#4CAF50] font-bold">Você votou em: {{ currentThemeVote.name }}!</p>
                 <p v-else class="text-[#B03D3D] font-bold"> Você ainda não votou!</p>
                 <p class="text-yellow-300 mt-5">Votos: {{ totalVotes }}/{{ players.length }}</p>
               </div>
               <!-- Em Jogo: Board do Jogo -->
-              <div v-else-if="room?.status === 'playing'">
+              <div v-else-if="room?.status === 'playing' || room?.status === 'finished'">
                 <div class="text-yellow-300 mb-10">
-                  <h2 class="text-3xl">{{themeStore.selectedTheme?.name}}</h2>
+                  <h2 class="text-3xl font-bold">{{themeStore.selectedTheme?.name}}</h2>
                   <h3 class="text-sm">{{themeStore.selectedTheme?.description}}</h3>
                 </div>
-                <div class="game-board flex gap-2 items-end flex-wrap">
+                <div class="game-board flex gap-2 items-end justify-center flex-wrap">
                   <div class="player-card rounded-xl w-[125px] h-[175px] bg-[#d0b249] shadow-lg border-light border-2 items-center justify-center flex">
                     <p class="font-bold text-black text-4xl">0</p>
                   </div>
@@ -89,12 +89,10 @@
                 </div>
               </div>
               <!-- Resultados: Final do Jogo -->
-              <div v-else-if="room?.status === 'finished'">
-                <h2>YOU {{result ? 'WON!!' : 'LOST!!'}}</h2>
-                <h3>Results</h3>
-                <div v-for="r in results" :style="{ backgroundColor: r.correct ? 'lightgreen' : 'lightcoral' }">
-                  Position #{{ r.position }}: {{ r.hint }} - {{ r.number }}
-                </div>
+              <div v-if="room?.status === 'finished'" class="mt-5">
+                <p class="font-bold text-xl">
+                  Vocês <span :class="result ? 'text-[#4CAF50]' : 'text-[#B03D3D]'">{{result ? 'ganharam!!' : 'perderam!!'}}</span>
+                </p>
               </div>
             </div>
             <!-- Em Jogo: Centro de Controle -->
@@ -162,7 +160,6 @@ const copied = ref(false);
 const linkInput = ref(null);
 const roomInfo = ref(null);
 const result = ref(null);
-const results = ref([]);
 
 const player = computed(() => roomStore.getPlayer);
 const room = computed(() => roomStore.currentRoom);
@@ -290,8 +287,8 @@ onMounted(() => {
       }
     }
     result.value = win;
-    results.value = players;
     room.value.status = 'finished';
+    roomStore.setPlayerNumbers(players);
   });
 });
 

@@ -4,8 +4,9 @@
       <span class="!text-white">{{ position }}</span>
     </div>
     <div :class="[
-        'rounded-xl w-[125px] h-[175px] bg-[#151515] shadow-lg border-light border-2 flex justify-center items-center',
+        'rounded-xl w-[125px] h-[175px]  shadow-lg border-2 flex justify-center items-center',
         player ? 'player-card' : 'empty-card',
+        room?.status === 'playing' ? 'bg-[#151515] text-yellow-300 border-light' : 'bg-light text-black border-black'
       ]"
     >
       <div v-if="player" class="flex flex-col justify-between items-center h-full p-2">
@@ -27,20 +28,17 @@
 </template>
 
 <script setup>
+import {useRoomStore} from "../stores/room.js";
+import {computed} from "vue";
+
 const props = defineProps(['position', 'player']);
+const roomStore = useRoomStore();
+
+const room = computed(() => roomStore.currentRoom);
 </script>
 
 <style scoped>
-.empty-card {
-  background-color:  transparent;
-  border-style: dashed;
-}
-.played-card {
-  background-color: #151515;
-  border-style: solid;
-}
 span {
   font-weight: 500;
-  color: var(--color-yellow-300);
 }
 </style>
