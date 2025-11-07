@@ -149,6 +149,8 @@ io.on("connection", (socket) => {
         const room = rooms[roomCode];
         if (!room) return callback({ error: "Sala não encontrada!" });
 
+        if (room.status !== "lobby") return callback({error: "Esta partida já começou!"})
+
         if (!playerName || !playerName.trim()) {
             return callback({ error: "Escolha um username!" });
         }
