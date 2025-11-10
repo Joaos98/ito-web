@@ -200,13 +200,8 @@ io.on("connection", (socket) => {
 
     // Start theme voting (host only)
     socket.on("startThemeVoting", ({ roomCode }) => {
+        if (!checkRoomAndHost(roomCode)) return;
         const room = rooms[roomCode];
-        if (!room) return;
-
-        const playerInfo = socketToPlayer[socket.id];
-        if (!playerInfo || playerInfo.playerId !== room.hostId) {
-            return; // Only host can start voting
-        }
 
         const themes = getRandomThemes(5);
         room.themeOptions = themes;
@@ -218,13 +213,8 @@ io.on("connection", (socket) => {
 
     // Get new themes (host only)
     socket.on("rerollThemes", ({ roomCode }) => {
+        if (!checkRoomAndHost(roomCode)) return;
         const room = rooms[roomCode];
-        if (!room) return;
-
-        const playerInfo = socketToPlayer[socket.id];
-        if (!playerInfo || playerInfo.playerId !== room.hostId) {
-            return; // Only host can start voting
-        }
 
         const themes = getRandomThemes(5);
         room.themeOptions = themes;
@@ -273,8 +263,8 @@ io.on("connection", (socket) => {
 
     // Finish game
     socket.on("finishGame", ({ roomCode }) => {
+        if (!checkRoomAndHost(roomCode)) return;
         const room = rooms[roomCode];
-        if (!room) return;
 
         const results = room.players.map(p => ({
             playerId: p.id,
@@ -287,6 +277,20 @@ io.on("connection", (socket) => {
 
         io.to(roomCode).emit("gameFinished", results);
     });
+
+    // Start new game
+    socket.on("newGame", ({ roomCode }) => {
+        console.log("New game started: ", roomCode);
+        if (!checkRoomAndHost(roomCode)) return;
+
+        console.log("Attempting to clear room: ", roomCode);
+        rooms[roomCode].status = "lobby";
+        rooms[roomCode].selectedTheme = null;
+        delete themeVotes[roomCode];
+        delete playerVotes[roomCode];
+        console.log("Sending room: ", rooms[roomCode]);
+        io.to(roomCode).emit("newGameStarted", {room: rooms[roomCode]});
+    })
 
     // Handle disconnect
     socket.on("disconnect", () => {
@@ -318,7 +322,14 @@ io.on("connection", (socket) => {
             delete socketToPlayer[socket.id];
         }
     });
+
+    const checkRoomAndHost = (roomCode) => {
+        const room = rooms[roomCode];
+        const playerInfo = socketToPlayer[socket.id];
+        return (room && playerInfo && playerInfo.playerId === room.hostId);
+    }
 });
+
 
 const PORT = 3000;
 server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

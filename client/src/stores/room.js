@@ -34,29 +34,31 @@ export const useRoomStore = defineStore('room', () => {
             for (const player of currentRoom.value.players) {
                 player.number = players.find(p => p.playerId === player.id)?.number;
             }
-    }
+        }
+    };
+
+    const resetPlayers = () => {
+        if (currentRoom.value && currentRoom.value.players) {
+            for (const player of currentRoom.value.players) {
+                player.number = null;
+                player.hint = null;
+                player.position = null;
+            }
+        }
     }
 
     const getPlayer = computed(() => {
         return currentRoom.value.players.find(p => p.id === myId.value);
     });
 
-    const clearRoom = () => {
-        currentRoom.value = {
-            status: 'lobby',
-            players: [],
-            code: null
-        };
-    };
-
     return {
         currentRoom,
         setCurrentRoom,
-        clearRoom,
         setPlayers,
         setRoomStatus,
         getPlayer,
         myId,
+        resetPlayers,
         setMyId,
         setPlayerNumbers
     };

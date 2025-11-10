@@ -18,11 +18,17 @@ export const useThemeStore = defineStore('theme', () => {
         selectedTheme.value = null;
     };
 
+    const resetTheme = () => {
+        themeOptions.value = [];
+        selectedTheme.value = null;
+    }
+
     return {
         themeOptions,
         selectedTheme,
         setThemeOptions,
         setSelectedTheme,
-        clearThemes
+        clearThemes,
+        resetTheme
     };
 });

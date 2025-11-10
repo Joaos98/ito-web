@@ -96,6 +96,9 @@
                 <p class="font-bold text-xl">
                   Vocês <span :class="result ? 'text-[#4CAF50]' : 'text-[#B03D3D]'">{{result ? 'ganharam!!' : 'perderam!!'}}</span>
                 </p>
+                <ButtonPrimary v-if="player?.isHost" class="mt-5" @click="newGame">
+                  Novo Jogo
+                </ButtonPrimary>
               </div>
             </div>
             <!-- Em Jogo: Centro de Controle -->
@@ -298,6 +301,17 @@ onMounted(() => {
     room.value.status = 'finished';
     roomStore.setPlayerNumbers(players);
   });
+  socket.on("newGameStarted", ({ room }) => {
+    hint.value = "";
+    position.value = null;
+    totalVotes.value = 0;
+    currentThemeVote.value = null;
+    roomInfo.value = room;
+    roomStore.setRoomStatus('lobby');
+    themeStore.resetTheme();
+    roomStore.resetPlayers();
+    result.value = null;
+  })
 });
 
 onUnmounted(() => {
@@ -339,6 +353,7 @@ const voteTheme = (theme) => {
 const startThemeVoting = () => socket.emit("startThemeVoting", { roomCode });
 const rerollThemes = () => socket.emit("rerollThemes", { roomCode });
 const finishGame = () => socket.emit("finishGame", { roomCode });
+const newGame = () => socket.emit("newGame", { roomCode });
 </script>
 
 <style scoped>
