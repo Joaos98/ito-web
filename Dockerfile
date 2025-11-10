@@ -1,23 +1,29 @@
-# Use full Debian-based Node image to avoid musl issues
+# Use full Node 22 (non-Alpine) to avoid musl optional deps
 FROM node:22
 
-# Set working directory
 WORKDIR /app
 
-# Copy everything
+# Copy package files first for better layer caching
+COPY client/package*.json ./client/
+COPY server/package*.json ./server/
+
+# Install dependencies separately to avoid cache pollution
+WORKDIR /app/client
+RUN npm ci --omit=dev
+
+WORKDIR /app/server
+RUN npm ci --omit=dev
+
+# Copy remaining source code
+WORKDIR /app
 COPY . .
 
-# --- Build frontend ---
+# Build frontend
 WORKDIR /app/client
-RUN npm install
 RUN npm run build
 
-# --- Set up backend ---
-WORKDIR /app/server
-RUN npm install
-
-# --- Serve built frontend ---
+# Go back to root and expose backend
 WORKDIR /app
 EXPOSE 8080
 
-CMD ["node", "server/index.js"]
+CMD ["node", "server/server.js"]
