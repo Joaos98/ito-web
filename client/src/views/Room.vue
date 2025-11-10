@@ -74,6 +74,9 @@
                 <p v-if="currentThemeVote" class="text-[#4CAF50] font-bold">Você votou em: {{ currentThemeVote.name }}!</p>
                 <p v-else class="text-[#B03D3D] font-bold"> Você ainda não votou!</p>
                 <p class="text-yellow-300 mt-5">Votos: {{ totalVotes }}/{{ players.length }}</p>
+                <ButtonPrimary v-if="player?.isHost" class="mt-5" @click="rerollThemes">
+                  Trocar Temas
+                </ButtonPrimary>
               </div>
               <!-- Em Jogo: Board do Jogo -->
               <div v-else-if="room?.status === 'playing' || room?.status === 'finished'">
@@ -267,6 +270,11 @@ onMounted(() => {
     themeStore.setThemeOptions(t);
     roomStore.setRoomStatus("voting");
   });
+  socket.on("rerolledThemes", ({ themes: t}) => {
+    themeStore.setThemeOptions(t);
+    currentThemeVote.value = null;
+    totalVotes.value = 0;
+  })
   socket.on("themeVoted", (votes) => {
     totalVotes.value = votes;
   });
@@ -329,6 +337,7 @@ const voteTheme = (theme) => {
 };
 
 const startThemeVoting = () => socket.emit("startThemeVoting", { roomCode });
+const rerollThemes = () => socket.emit("rerollThemes", { roomCode });
 const finishGame = () => socket.emit("finishGame", { roomCode });
 </script>
 

@@ -11,7 +11,7 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => res.send("ITO WebSocket backend running"));
+app.get("/", (req, res) => res.send("ito-web WebSocket backend running"));
 
 // All in-memory storage
 const rooms = {};        // roomCode -> { code, status, players, hostId, themeOptions, selectedTheme }
@@ -215,6 +215,23 @@ io.on("connection", (socket) => {
         playerVotes[roomCode] = {};
         io.to(roomCode).emit("themeVotingStarted", { themes: themes });
     });
+
+    // Get new themes (host only)
+    socket.on("rerollThemes", ({ roomCode }) => {
+        const room = rooms[roomCode];
+        if (!room) return;
+
+        const playerInfo = socketToPlayer[socket.id];
+        if (!playerInfo || playerInfo.playerId !== room.hostId) {
+            return; // Only host can start voting
+        }
+
+        const themes = getRandomThemes(5);
+        room.themeOptions = themes;
+        themeVotes[roomCode] = {};
+        playerVotes[roomCode] = {};
+        io.to(roomCode).emit("rerolledThemes", { themes: themes });
+    })
 
     // Vote theme
     socket.on("voteTheme", async ({ roomCode, playerId, theme }) => {
