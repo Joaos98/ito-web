@@ -26,4 +26,4 @@ RUN npm run build
 WORKDIR /app
 EXPOSE 8080
 
-CMD ["node", "server/server.js"]
+CMD ["node", "server/index.js"]
