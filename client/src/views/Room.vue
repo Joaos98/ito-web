@@ -166,7 +166,7 @@ const room = computed(() => roomStore.currentRoom);
 const players = computed(() => roomStore.currentRoom?.players || []);
 
 const inviteLink = computed(() => {
-  return `${window.location.origin}/room/${roomCode}`;
+  return `${window.location.origin}/r/${roomCode}`;
 });
 
 const allCardsPlayed = computed(() => {

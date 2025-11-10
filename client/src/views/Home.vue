@@ -66,7 +66,7 @@ const createRoom = () => {
       roomStore.setPlayers([res.player]);
       roomStore.setMyId(res.player.id);
       roomStore.setCurrentRoom(res.room);
-      router.push(`/room/${res.room.code}`);
+      router.push(`/r/${res.room.code}`);
     }
   });
 };
@@ -92,7 +92,7 @@ const joinRoom = () => {
     } else {
       roomStore.setMyId(res.player.id);
       roomStore.setCurrentRoom(res.room);
-      router.push(`/room/${res.room.code}`);
+      router.push(`/r/${res.room.code}`);
     }
   });
 };
