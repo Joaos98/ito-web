@@ -288,18 +288,18 @@ onMounted(() => {
   socket.on("assignedNumber", ({ number, playerId }) => {
     roomStore.currentRoom.players.find(p => p.id === playerId).number = number;
   });
-  socket.on("gameFinished", (players) => {
+  socket.on("gameFinished", (results) => {
     let win = true;
-    players.sort((a, b) => a.position > b.position);
-    for (let i = 1; i < players.length; i++) {
-      if (players[i].number < players[i-1].number) {
+    results.sort((a, b) => a.position - b.position);
+    for (let i = 1; i < results.length; i++) {
+      if (results[i].number < results[i-1].number) {
         win = false;
-        players[i].correct = false;
+        break;
       }
     }
     result.value = win;
     room.value.status = 'finished';
-    roomStore.setPlayerNumbers(players);
+    roomStore.setPlayerNumbers(results);
   });
   socket.on("newGameStarted", ({ room }) => {
     hint.value = "";

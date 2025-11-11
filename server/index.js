@@ -280,8 +280,7 @@ io.on("connection", (socket) => {
             playerName: p.name,
             number: p.number,
             position: p.position,
-            hint: p.hint,
-            correct: true
+            hint: p.hint
         }));
 
         io.to(roomCode).emit("gameFinished", results);
