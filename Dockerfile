@@ -1,29 +1,26 @@
-# Use full Node 22 (non-Alpine) to avoid musl optional deps
-FROM node:22
+# Use Node 22 (modern and Fly-compatible)
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY client/package*.json ./client/
-COPY server/package*.json ./server/
-
-# Install dependencies separately to avoid cache pollution
+# --- Build client ---
+COPY client ./client
 WORKDIR /app/client
-RUN npm ci --omit=dev
-
-WORKDIR /app/server
-RUN npm ci --omit=dev
-
-# Copy remaining source code
-WORKDIR /app
-COPY . .
-
-# Build frontend
-WORKDIR /app/client
+RUN npm install
 RUN npm run build
 
-# Go back to root and expose backend
-WORKDIR /app
-EXPOSE 8080
+# --- Setup server ---
+WORKDIR /app/server
+COPY server ./server
+RUN npm install
 
-CMD ["node", "server/index.js"]
+# --- Combine build outputs ---
+WORKDIR /app
+COPY . .
+# Move built client assets into server/public (or wherever you serve static files)
+RUN mkdir -p server/public && cp -r client/dist/* server/public/
+
+# --- Run server ---
+WORKDIR /app/server
+EXPOSE 8080
+CMD ["node", "index.js"]
